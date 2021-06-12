@@ -5,40 +5,34 @@ import {
   ValidationPipe
 } from '@nestjs/common';
 import { NestFactory, Reflector } from '@nestjs/core';
-import type { NestExpressApplication } from '@nestjs/platform-express';
-import { ExpressAdapter } from '@nestjs/platform-express';
-import compression from 'compression';
-import RateLimit from 'express-rate-limit';
-import helmet from 'helmet';
-import morgan from 'morgan';
 import {
-  initializeTransactionalContext,
-  patchTypeORMRepositoryWithBaseRepository
-} from 'typeorm-transactional-cls-hooked';
+  FastifyAdapter,
+  NestFastifyApplication
+} from '@nestjs/platform-fastify';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import compression from 'compression';
+import fastifyCookie from 'fastify-cookie';
+import fastifyCsrf from 'fastify-csrf';
+import { fastifyHelmet } from 'fastify-helmet';
+import fmp from 'fastify-multipart';
 
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './filters/bad-request.filter';
 import { QueryFailedFilter } from './filters/query-failed.filter';
-import { setupSwagger } from './setup-swagger';
 
-export async function bootstrap(): Promise<NestExpressApplication> {
-  initializeTransactionalContext();
-  patchTypeORMRepositoryWithBaseRepository();
-  const app = await NestFactory.create<NestExpressApplication>(
+export async function bootstrap(): Promise<NestFastifyApplication> {
+  const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new ExpressAdapter(),
-    { cors: true }
+    new FastifyAdapter()
   );
-  app.enable('trust proxy'); // only if you're behind a reverse proxy (Heroku, Bluemix, AWS ELB, Nginx, etc)
-  app.use(helmet());
-  app.use(
-    RateLimit({
-      windowMs: 15 * 60 * 1000, // 15 minutes
-      max: 100 // limit each IP to 100 requests per windowMs
-    })
-  );
+
+  await app.register(fastifyCookie);
+  await app.register(fastifyCookie);
+  await app.register(fmp);
+  await app.register(fastifyCsrf, { cookieKey: 'X-CSRF-Token' });
+  await app.register(fastifyHelmet);
+
   app.use(compression());
-  app.use(morgan('combined'));
 
   const reflector = app.get(Reflector);
 
@@ -59,9 +53,14 @@ export async function bootstrap(): Promise<NestExpressApplication> {
     })
   );
 
-  if (['development', 'staging'].includes('development')) {
-    setupSwagger(app);
-  }
+  const config = new DocumentBuilder()
+    .setTitle('NestJs Core APIs')
+    .setDescription('NestJs Core APIs')
+    .setVersion('0.0.1')
+    .addBearerAuth()
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('swagger', app, document);
 
   const port = 8080;
   await app.listen(port);

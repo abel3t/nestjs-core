@@ -2,7 +2,7 @@ import './boilerplate.polyfill';
 
 import type { MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 import { contextMiddleware } from './middlewares';
 import { AuthModule } from './modules/auth/auth.module';
@@ -12,8 +12,9 @@ import { SharedModule } from './shared/shared.module';
   imports: [
     AuthModule,
     SharedModule,
-    ConfigModule.forRoot({
-      isGlobal: true
+    ThrottlerModule.forRoot({
+      ttl: 60,
+      limit: 10
     })
   ]
 })

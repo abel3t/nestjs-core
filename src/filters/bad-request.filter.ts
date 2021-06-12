@@ -2,7 +2,7 @@ import type { ArgumentsHost, ExceptionFilter } from '@nestjs/common';
 import {
   Catch,
   HttpStatus,
-  UnprocessableEntityException,
+  UnprocessableEntityException
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ValidationError } from 'class-validator';
@@ -41,7 +41,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       }
 
       for (const [constraintKey, constraint] of Object.entries(
-        validationError.constraints,
+        validationError.constraints
       )) {
         // convert default messages
         if (!constraint) {
