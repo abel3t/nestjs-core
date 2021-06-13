@@ -63,7 +63,19 @@ export async function bootstrap(): Promise<NestFastifyApplication> {
   SwaggerModule.setup('swagger', app, document);
 
   const port = 8080;
-  await app.listen(port);
+  await app.listen(
+    process.env.PORT || port,
+    '0.0.0.0',
+    (err: Error, address: string) => {
+      if (!err) {
+        console.log(`\n\n\nServer started at ${address}\n\n`);
+
+        return;
+      }
+
+      console.log(err);
+    }
+  );
 
   console.info(`server running on port ${port}`);
 
